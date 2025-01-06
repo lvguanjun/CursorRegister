@@ -7,7 +7,6 @@ on:
 
 env:
   ACCOUNTS_NUMBER: ${{ vars.CURSOR_ACCOUNTS_NUMBER || 2 }} # 默认 2 个账号
-  MAX_WORKERS: "1" # 固定 1 个 worker 更稳定
 
 jobs:
   register:
@@ -23,10 +22,4 @@ jobs:
 
       - name: Run registration
         run: |
-          python3 ./cursor_register.py \
-            --oneapi \
-            --oneapi_url "${{ secrets.CURSOR_ONEAPI_URL }}" \
-            --oneapi_token "${{ secrets.CURSOR_ONEAPI_TOKEN }}" \
-            --oneapi_channel_url "${{ secrets.CURSOR_CHANNEL_URL }}" \
-            --number ${{ env.ACCOUNTS_NUMBER }} \
-            --max_workers ${{ env.MAX_WORKERS }}
+          python3 ./cursor_register.py --oneapi --oneapi_url "${{ secrets.CURSOR_ONEAPI_URL }}" --oneapi_token "${{ secrets.CURSOR_ONEAPI_TOKEN }}" --oneapi_channel_url "${{ secrets.CURSOR_CHANNEL_URL }}" --number ${{ env.ACCOUNTS_NUMBER }}
