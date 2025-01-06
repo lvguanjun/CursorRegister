@@ -203,5 +203,4 @@ if __name__ == "__main__":
             [row["token"].split("%3A%3A")[1] for row in account_infos],
             OneAPIManager.cursor_models,
         )
-        print(f"[OneAPI] Add Channel Request Status Code: {response.status_code}")
-        print(f"[OneAPI] Add Channel Request Response Body: {response.json()}")
+        print(f"[OneAPI] Update or Create Channel Request Status Code: {response.status_code}")

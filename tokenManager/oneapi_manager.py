@@ -108,9 +108,11 @@ class OneAPIManager:
         if search_response.status_code == 200:
             channels = [channel for channel in search_response.json().get("data", []) if channel["name"] == name]
             if channels:
+                print(f"[OneAPI] Channel {name} already exists, updating...")
                 # 找到现有channel，更新它
                 channel: dict = channels[0]
                 return self.update_channel_key(channel, keys)
 
         # 没找到，创建新的
+        print(f"[OneAPI] Channel {name} not found, creating new...")
         return self.add_channel(name, base_url, keys, models, rate_limit_count)
