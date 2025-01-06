@@ -88,3 +88,29 @@ class OneAPIManager:
 
         response = requests.delete(url, headers=self.headers)
         return response
+
+    def search_channel(self, keyword: str) -> dict:
+        url = self.base_url + f"/api/channel/search?keyword={keyword}"
+        return requests.get(url, headers=self.headers)
+
+    def update_channel_key(self, channel_info: dict, keys: list):
+        url = self.base_url + f"/api/channel/"
+
+        channel_info["key"] = "\n".join(keys)
+
+        response = requests.put(url, json=channel_info, headers=self.headers)
+        return response
+
+    def update_or_create_channel(self, name, base_url, keys, models, rate_limit_count=0):
+        # 先搜索是否存在
+        search_response = self.search_channel(keyword=name)
+
+        if search_response.status_code == 200:
+            channels = search_response.json().get("data", [])
+            if channels:
+                # 找到现有channel，更新它
+                channel: dict = channels[0]
+                return self.update_channel_key(channel, keys)
+
+        # 没找到，创建新的
+        return self.add_channel(name, base_url, keys, models, rate_limit_count)
