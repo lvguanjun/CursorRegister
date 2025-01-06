@@ -200,7 +200,7 @@ if __name__ == "__main__":
         response = oneapi.update_or_create_channel(
             "Cursor2API",
             oneapi_channel_url,
-            [row["token"] for row in account_infos],
+            [row["token"].split("%3A%3A")[1] for row in account_infos],
             OneAPIManager.cursor_models,
         )
         print(f"[OneAPI] Add Channel Request Status Code: {response.status_code}")

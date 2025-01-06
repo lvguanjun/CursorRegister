@@ -96,7 +96,7 @@ class OneAPIManager:
     def update_channel_key(self, channel_info: dict, keys: list):
         url = self.base_url + f"/api/channel/"
 
-        channel_info["key"] = "\n".join(keys)
+        channel_info["key"] = ",".join(keys)
 
         response = requests.put(url, json=channel_info, headers=self.headers)
         return response
@@ -106,7 +106,7 @@ class OneAPIManager:
         search_response = self.search_channel(keyword=name)
 
         if search_response.status_code == 200:
-            channels = search_response.json().get("data", [])
+            channels = [channel for channel in search_response.json().get("data", []) if channel["name"] == name]
             if channels:
                 # 找到现有channel，更新它
                 channel: dict = channels[0]
