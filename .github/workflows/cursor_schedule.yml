@@ -2,7 +2,7 @@ name: cursor-schedule
 
 on:
   schedule:
-    - cron: "0 0-18/2 * * *" # UTC 0-18 (东八区 08:00-02:00) 每2小时执行一次
+    - cron: "0 0-18 * * *" # UTC 0-18 (东八区 08:00-02:00) 每小时执行一次
   workflow_dispatch: # 保留手动触发用于测试
 
 env:
