@@ -9,7 +9,13 @@
 
 
 import argparse
+import locale
 import os
+import sys
+
+# 设置控制台编码
+if sys.platform.startswith("win"):
+    sys.stdout.reconfigure(encoding="utf-8")
 
 from cursor_register import register_cursor
 from tokenManager.oneapi_cursor import Cursor
@@ -79,8 +85,12 @@ def check_and_register(
 
     if response.status_code == 200:
         print(f"[Success] Updated or created channel {channel_name}")
-        body = response.json()
-        print({"message": body.get("message"), "success": body.get("success")})
+        try:
+            body = response.json()
+            print("Response message:", body.get("message", ""))
+            print("Response success:", body.get("success", ""))
+        except Exception as e:
+            print("Failed to print response:", str(e), "Response:", response.text)
     else:
         print(f"[Error] Failed to update or create channel {channel_name}: {response.status_code}")
 
