@@ -26,16 +26,19 @@ def check_and_register(
     oneapi = OneAPIManager(oneapi_url, oneapi_token)
 
     channel_key = oneapi.get_channel_key_by_name(channel_name)
-    if not channel_key:
-        print(f"[Error] Channel {channel_name} not found")
-        return
 
-    tokens = channel_key.split(",")
-    need_register = any(Cursor.get_remaining_quota(token) < threshold for token in tokens)
+    if channel_key:
+        print(f"Channel {channel_name} found, checking balance...")
+        tokens = channel_key.split(",")
+        need_register = any(Cursor.get_remaining_quota(token) < threshold for token in tokens)
 
-    if not need_register:
-        print(f"[Info] Channel {channel_name} remaining quota is above threshold ({threshold}), no need to register")
-        return
+        if not need_register:
+            print(
+                f"[Info] Channel {channel_name} remaining quota is above threshold ({threshold}), no need to register"
+            )
+            return
+    else:
+        print(f"Channel {channel_name} not found, creating new...")
 
     # 注册新账号
     attempt, max_attempts = 0, 3
@@ -71,9 +74,9 @@ def check_and_register(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Check Cursor channel balance and register new accounts if needed")
-    parser.add_argument("--oneapi_url", type=str, required=True, help="OneAPI server URL")
-    parser.add_argument("--oneapi_token", type=str, required=True, help="OneAPI access token")
-    parser.add_argument("--oneapi_channel_url", type=str, required=True, help="Base URL for OneAPI channel")
+    parser.add_argument("--oneapi_url", type=str, required=False, help="OneAPI server URL")
+    parser.add_argument("--oneapi_token", type=str, required=False, help="OneAPI access token")
+    parser.add_argument("--oneapi_channel_url", type=str, required=False, help="Base URL for OneAPI channel")
     parser.add_argument("--threshold", type=int, default=10, help="Balance threshold to trigger registration")
     parser.add_argument("--register_number", type=int, default=2, help="Number of accounts to register")
 

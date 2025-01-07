@@ -3,7 +3,7 @@
 import argparse
 
 import requests
-from oneapi_manager import OneAPIManager
+from tokenManager.oneapi_manager import OneAPIManager
 
 
 class Cursor:
