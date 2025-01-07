@@ -42,32 +42,35 @@ def check_and_register(
 
     # 注册新账号
     attempt, max_attempts = 0, 3
-    now_account_infos = []
+    registered_accounts = []
     while attempt < max_attempts:
         account_infos = register_cursor(register_number, max_workers=1)
         if account_infos:
-            now_account_infos.extend(account_infos)
-            if len(now_account_infos) >= register_number:
-                now_account_infos = now_account_infos[:register_number]
+            registered_accounts.extend(account_infos)
+            if len(registered_accounts) >= register_number:
+                registered_accounts = registered_accounts[:register_number]
                 break
         attempt += 1
         print(f"[Info] Failed to register new accounts, attempt {attempt}")
-    if not now_account_infos:
+
+    if not registered_accounts:
         print("[Error] Failed to register new accounts")
         return
 
-    print(f"[Info] Successfully registered {len(account_infos)} new accounts")
+    print(f"[Info] Successfully registered {len(registered_accounts)} new accounts")
 
     # 更新或创建新的 channel
     response = oneapi.update_or_create_channel(
         channel_name,
         oneapi_channel_url,
-        [info["token"] for info in account_infos],
+        [info["token"] for info in registered_accounts],
         OneAPIManager.cursor_models,
     )
 
     if response.status_code == 200:
         print(f"[Success] Updated or created channel {channel_name}")
+        body = response.json()
+        print({"message": body.get("message"), "success": body.get("success")})
     else:
         print(f"[Error] Failed to update or create channel {channel_name}: {response.status_code}")
 
