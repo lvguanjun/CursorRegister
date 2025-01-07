@@ -122,3 +122,17 @@ class OneAPIManager:
         # 没找到，创建新的
         print(f"[OneAPI] Channel {name} not found, creating new...")
         return self.add_channel(name, base_url, keys, models, rate_limit_count)
+
+    def get_channel_key_by_name(self, name: str) -> str:
+        search_response = self.search_channel(keyword=name)
+        if search_response.status_code == 200:
+            for channel in search_response.json().get("data", []):
+                if channel["name"] == name:
+                    channel_info = channel
+                    break
+            else:
+                return None
+        update_response = self.update_channel_key(channel_info, [])
+        if update_response.status_code == 200:
+            return update_response.json()["data"]["key"]
+        return None

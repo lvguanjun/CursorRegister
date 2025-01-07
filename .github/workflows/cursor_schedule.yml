@@ -2,14 +2,15 @@ name: cursor-schedule
 
 on:
   schedule:
-    - cron: "0 0 */10 * *" # 每10天 UTC 0:00
+    - cron: "0 0-18/2 * * *" # UTC 0-18 (东八区 08:00-02:00) 每2小时执行一次
   workflow_dispatch: # 保留手动触发用于测试
 
 env:
   ACCOUNTS_NUMBER: ${{ vars.CURSOR_ACCOUNTS_NUMBER || 2 }} # 默认 2 个账号
+  BALANCE_THRESHOLD: ${{ vars.CURSOR_BALANCE_THRESHOLD || 20 }} # 默认余额阈值 20
 
 jobs:
-  register:
+  check-and-register:
     runs-on: windows-latest
     env:
       HIDE_ACCOUNT_INFO: "true"
@@ -20,6 +21,6 @@ jobs:
         run: |
           pip3 install -r ./requirements.txt
 
-      - name: Run registration
+      - name: Check balance and register if needed
         run: |
-          python3 ./cursor_register.py --oneapi --oneapi_url "${{ secrets.CURSOR_ONEAPI_URL }}" --oneapi_token "${{ secrets.CURSOR_ONEAPI_TOKEN }}" --oneapi_channel_url "${{ secrets.CURSOR_CHANNEL_URL }}" --number ${{ env.ACCOUNTS_NUMBER }}
+          python3 ./check_balance.py --oneapi_url "${{ secrets.CURSOR_ONEAPI_URL }}" --oneapi_token "${{ secrets.CURSOR_ONEAPI_TOKEN }}" --oneapi_channel_url "${{ secrets.CURSOR_CHANNEL_URL }}" --threshold ${{ env.BALANCE_THRESHOLD }} --register_number ${{ env.ACCOUNTS_NUMBER }}

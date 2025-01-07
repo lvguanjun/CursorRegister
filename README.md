@@ -30,6 +30,26 @@ python cursor_register.py --oneapi_url {oneapi_url} --oneapi_token {oneapi_token
 - `oneapi_token`: The access token for your oneapi website. See more details in [OneAPI API](https://github.com/songquanpeng/one-api/blob/main/docs/API.md)
 - `oneapi_channel_url`: The cursor-api reverse proxy server like [cursor-api](https://github.com/lvguanjun/cursor-api)
 
+### 余额检查和自动注册
+
+检查通道的剩余配额，当余额低于阈值时自动注册新账号。
+
+```
+python check_balance.py --oneapi_url {oneapi_url} --oneapi_token {oneapi_token} --oneapi_channel_url {oneapi_channel_url} --threshold 20 --register_number 2
+```
+
+- `oneapi_url`: OneAPI 服务器地址
+- `oneapi_token`: OneAPI 网站的访问令牌
+- `oneapi_channel_url`: cursor-api 反向代理服务器地址
+- `threshold`: 触发注册的余额阈值（默认：20）
+- `register_number`: 要注册的账号数量（默认：2）
+
+你也可以通过环境变量设置这些参数：
+
+- `CURSOR_ONEAPI_URL`
+- `CURSOR_ONEAPI_TOKEN`
+- `CURSOR_CHANNEL_URL`
+
 ## Run in Github Action
 
 ### Register accounts. Download account info and cookie token from Github Artifact.
@@ -60,7 +80,7 @@ Please run the Github Action pipeline with the following parameter:
 
 ## GitHub Actions 自动化
 
-本项目支持通过 GitHub Actions 实现自动化注册。
+本项目支持通过 GitHub Actions 实现自动化注册和余额检查。
 
 ### 配置步骤
 
@@ -73,10 +93,12 @@ Please run the Github Action pipeline with the following parameter:
 
 3. 在 Variables 中可选配置:
    - `CURSOR_ACCOUNTS_NUMBER`: 要注册的账号数量(默认为 2)
+   - `CURSOR_BALANCE_THRESHOLD`: 余额检查阈值(默认为 20)
 
 ### 运行方式
 
-- 自动运行：每 10 天自动执行一次注册(UTC 0:00)
+- 自动运行：
+  - 每 2 小时自动检查一次余额，低于阈值时自动注册新账号
 - 手动运行：可以在 Actions 页面手动触发 workflow
 
 ### 注意事项
