@@ -3,6 +3,7 @@
 import argparse
 
 import requests
+
 from tokenManager.oneapi_manager import OneAPIManager
 
 
@@ -22,27 +23,27 @@ class Cursor:
         }
         response = requests.get(url, headers=headers)
         usage = response.json()["gpt-4"]
-        return usage["maxRequestUsage"] - usage["numRequests"]
+        res = usage["maxRequestUsage"] - usage["numRequests"]
+        print(f"[Info] Channel Remaining Balance: {res}")
+        return res
 
     @classmethod
     def get_trial_remaining_days(cls, token):
         user = token.split("%3A%3A")[0]
         url = f"https://www.cursor.com/api/auth/stripe"
 
-        headers = {
-            "Content-Type": "application/json",
-            "Cookie": f"WorkosCursorSessionToken={token}"
-        }
+        headers = {"Content-Type": "application/json", "Cookie": f"WorkosCursorSessionToken={token}"}
         response = requests.get(url, headers=headers)
         remaining_days = response.json().get("daysRemainingOnTrial", -1)
+        print(f"[Info] Channel Remaining Trial Days: {remaining_days}")
         return remaining_days
 
 
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--oneapi_url', type=str, required=False, help='URL link for One-API website')
-    parser.add_argument('--oneapi_token', type=str, required=False, help='Token for One-API website')
+    parser.add_argument("--oneapi_url", type=str, required=False, help="URL link for One-API website")
+    parser.add_argument("--oneapi_token", type=str, required=False, help="Token for One-API website")
 
     args = parser.parse_args()
     oneapi_url = args.oneapi_url
@@ -51,16 +52,16 @@ if __name__ == "__main__":
     oneapi = OneAPIManager(oneapi_url, oneapi_token)
 
     response_channels = oneapi.get_channels(0, 2147483647)
-    channels = response_channels.json()['data']
-    channels_id = [channel['id'] for channel in channels]
+    channels = response_channels.json()["data"]
+    channels_id = [channel["id"] for channel in channels]
     print(f"[OneAPI] Channel Count: {len(channels_id)}")
 
     # Remove channel with low quota
     for id in channels_id:
-        key = oneapi.get_channel(id).json()['data']['key']
+        key = oneapi.get_channel(id).json()["data"]["key"]
         remaining_balance = Cursor.get_remaining_balance(key)
         remaining_days = Cursor.get_trial_remaining_days(key)
         print(f"[OneAPI] Channel {id} Info: Quota = {remaining_balance}. Trial Remaining Days = {remaining_days}")
-        if remaining_balance < 10:# or remaining_days <= 0:
+        if remaining_balance < 10:  # or remaining_days <= 0:
             quota = oneapi.delete_channel(id)
             print(f"[OneAPI] Channel {id} Is Deleted.")
