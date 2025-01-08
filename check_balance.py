@@ -18,7 +18,7 @@ if sys.platform.startswith("win"):
     sys.stdout.reconfigure(encoding="utf-8")
 
 from cursor_register import register_cursor
-from tokenManager.oneapi_cursor import Cursor
+from tokenManager.oneapi_cursor_cleaner import Cursor
 from tokenManager.oneapi_manager import OneAPIManager
 
 
@@ -46,7 +46,13 @@ def check_and_register(
     if channel_key:
         print(f"Channel {channel_name} found, checking balance...")
         tokens = channel_key.split(",")
-        need_register = any(Cursor.get_remaining_quota(token) < threshold for token in tokens)
+
+        # 当余额小于阈值，或者有效期低于 1 天时，需要注册新账号
+        one_threshold = (threshold + len(tokens) - 1) // len(tokens)
+        need_register = any(Cursor.get_remaining_balance(token) < one_threshold for token in tokens)
+
+        expected_remaining_days = 1
+        need_register = need_register and any(Cursor.get_trial_remaining_days(token) < expected_remaining_days for token in tokens)
 
         if not need_register:
             print(

@@ -2,32 +2,34 @@ import argparse
 import concurrent.futures
 import csv
 import os
-import random
 import re
-import time
+import csv
+import argparse
+import concurrent.futures
 from datetime import datetime
 
 from DrissionPage import Chromium, ChromiumOptions
 from faker import Faker
 from tempmail import EMail
 
+CURSOR_URL = "https://www.cursor.com/"
 CURSOR_LOGIN_URL = "https://authenticator.cursor.sh"
 CURSOR_SIGN_UP_URL = "https://authenticator.cursor.sh/sign-up"
 CURSOR_SETTINGS_URL = "https://www.cursor.com/settings"
 
 hide_account_info = os.getenv("HIDE_ACCOUNT_INFO", "false").lower() == "true"
 
-
-def cursor_turnstile(tab, retry_times=5):
-    for _ in range(retry_times):  # Retry times
-        challenge_shadow_root = tab.ele("@id=cf-turnstile", timeout=30).child().shadow_root
-        challenge_shadow_button = (
-            challenge_shadow_root.ele("tag:iframe", timeout=30).ele("tag:body").sr("xpath=//input[@type='checkbox']")
-        )
-        if challenge_shadow_button:
-            challenge_shadow_button.click()
-            tab.wait.load_start()
-            break
+def cursor_turnstile(tab, retry_times = 5):
+    for _ in range(retry_times): # Retry times
+        try:
+            challenge_shadow_root = tab.ele('@id=cf-turnstile').child().shadow_root
+            challenge_shadow_button = challenge_shadow_root.ele("tag:iframe", timeout=30).ele("tag:body").sr("xpath=//input[@type='checkbox']")
+            if challenge_shadow_button:
+                challenge_shadow_button.click()
+                tab.wait.load_start()
+                break
+        except:
+            pass
         if _ == retry_times - 1:
             print("[Register] Timeout when passing turnstile")
 
@@ -47,77 +49,102 @@ def sign_up(browser):
 
     tab = browser.new_tab(CURSOR_SIGN_UP_URL)
     browser.wait(0.5, 1.5)
-
     # Input first name, last name, email
     for _ in range(retry_times):
         try:
-            tab.ele("@name=first_name").input(first_name)
-            tab.ele("@name=last_name").input(last_name)
-            tab.ele("@name=email").input(email)
+            tab.ele("xpath=//input[@name='first_name']").input(first_name, clear=True)
+            tab.ele("xpath=//input[@name='last_name']").input(last_name, clear=True)
+            tab.ele("xpath=//input[@name='email']").input(email, clear=True)
             tab.ele("@type=submit").click()
-            cursor_turnstile(tab)
-            tab.wait(0.5, 1.5)
+            tab.wait(2.5, 4.5)
+
+            if tab.ele("xpath=//input[@name='email']").attr("data-valid") != "true":
+                tab.close()
+                return None
         except Exception as e:
             print(e)
+            tab.close()
             return None
-
-        # Continue to next step when the page is in password page
-        if tab.wait.eles_loaded("@text()=Password"):
+        
+        # In password page or data is validated, continue to next page
+        if tab.wait.eles_loaded("xpath=//input[@name='password']") or tab.ele("xpath=//input[@name='email']").attr("data-valid") is not None:
             break
 
-        # Kill the function since time out
+        # Kill the function since time out 
         if _ == retry_times - 1:
             print("[Register] Timeout when inputing email address")
+            tab.close()
             return None
 
+    # If not in password page, try pass turnstile page
+    if not tab.wait.eles_loaded("xpath=//input[@name='password']"):
+        #print("[Register] Try pass Turnstile for email page")
+        cursor_turnstile(tab)
+    
     # Input password
     for _ in range(retry_times):
         try:
-            tab.ele("@name=password").input(password)
-            tab.ele("@type=submit").click()
-
-            if tab.ele("This email is not available."):
-                print("This email is not available.")
-                return None
-            cursor_turnstile(tab)
-            tab.wait(0.5, 1.5)
+            tab.ele("xpath=//input[@name='password']").input(password, clear=True)
+            tab.ele('@type=submit').click()
+            tab.wait(2.5, 4.5)
         except Exception as e:
             print(e)
+            tab.close()
             return None
 
-        if tab.wait.eles_loaded("@data-index=0"):
+        # In code verification page or data is validated, continue to next page
+        if tab.wait.eles_loaded("xpath=//input[@data-index=0]") or tab.ele("xpath=//input[@name='password']").attr("data-valid") is not None:
             break
 
-        # Kill the function since time out
+        # Kill the function since time out 
         if _ == retry_times - 1:
             print("[Register] Timeout when inputing password")
+            tab.close()
             return None
+
+    # If not in verification code page, try pass turnstile page
+    if not tab.wait.eles_loaded("xpath=//input[@data-index=0]"):
+        #print("[Register] Try pass Turnstile for password page.")
+        cursor_turnstile(tab)
 
     # Input email verification code
     try:
         message = temp_email.wait_for_message(timeout=120)
-        message_text = message.body.strip().replace("\n", "").replace("\r", "").replace("=", "")
-        verify_code = re.search(r"Your verification code is (\d+)", message_text).group(1).strip()
-        for idx, digit in enumerate(verify_code, start=0):
-            tab.ele(f"@data-index={idx}", timeout=30).input(digit)
+        message_text = message.body.strip().replace('\n', '').replace('\r', '').replace('=', '')
+        verify_code = re.search(r'Your verification code is (\d+)', message_text).group(1).strip()
+        for idx, digit in enumerate(verify_code, start = 0):
+            tab.ele(f"xpath=//input[@data-index={idx}]", timeout=30).input(digit, clear=True)
             tab.wait(0.1, 0.3)
-        cursor_turnstile(tab)
         tab.wait(0.5, 1.5)
     except Exception as e:
         print(e)
+        tab.close()
+        return None
+
+    if tab.url != CURSOR_URL:
+        #print("[Register] Try pass Turnstile for email code page.")
+        cursor_turnstile(tab)
+
+    if not tab.wait.url_change(CURSOR_URL, timeout=180):
+        print("[Register] Fail to back to home page.")
         return None
 
     # Get cookie
     cookies = tab.cookies().as_dict()
-    token = cookies.get("WorkosCursorSessionToken", None)
-    tab.close()
+    token = cookies.get('WorkosCursorSessionToken', None)
 
     if not hide_account_info:
-        print("[Register] Cursor Email: " + email)
-        print("[Register] Cursor Password: " + password)
-        print("[Register] Cursor Token: " + token)
-    return {"username": email, "password": password, "token": token}
+        print(f"[Register] Cursor Email: {email}")
+        print(f"[Register] Cursor Password: {password}")
+        print(f"[Register] Cursor Token: {token}")
 
+    tab.close()
+
+    return {
+        'username': email,
+        'password': password,
+        'token': token
+    }
 
 def register_cursor(number, max_workers):
 
@@ -140,7 +167,7 @@ def register_cursor(number, max_workers):
     browser.quit(force=True)
 
     results = [result for result in results if result["token"] is not None]
-    # print(results)
+    #print(results)
     if len(results) > 0:
         formatted_date = datetime.now().strftime("%Y-%m-%d")
 
