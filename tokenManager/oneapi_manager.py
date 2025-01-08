@@ -53,7 +53,7 @@ class OneAPIManager:
         data = {
             "name": name,
             "type": 1,
-            "key": "\n".join(keys),
+            "key": ",".join(keys),
             "openai_organization": "",
             "base_url": base_url,
             "other": "",
