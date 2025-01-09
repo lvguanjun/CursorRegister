@@ -52,7 +52,7 @@ def check_and_register(
         need_register = any(Cursor.get_remaining_balance(token) < one_threshold for token in tokens)
 
         expected_remaining_days = 1
-        need_register = need_register and any(Cursor.get_trial_remaining_days(token) < expected_remaining_days for token in tokens)
+        need_register = need_register or any(Cursor.get_trial_remaining_days(token) <= expected_remaining_days for token in tokens)
 
         if not need_register:
             print(
