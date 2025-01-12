@@ -9,9 +9,6 @@ from tokenManager.oneapi_manager import OneAPIManager
 
 class Cursor:
 
-    def __init__():
-        pass
-
     @classmethod
     def get_remaining_balance(cls, token):
         user = token.split("%3A%3A")[0]
@@ -22,14 +19,16 @@ class Cursor:
             "Cookie": f"WorkosCursorSessionToken={token}",
         }
         response = requests.get(url, headers=headers)
-        usage = response.json()["gpt-4"]
+        usage = response.json().get("gpt-4", None)
+        if usage is None or "maxRequestUsage" not in usage or "numRequests" not in usage:
+            print(f"[Info] Invalid response, {response.json()}")
+            return None
         res = usage["maxRequestUsage"] - usage["numRequests"]
         print(f"[Info] Channel Remaining Balance: {res}")
         return res
 
     @classmethod
     def get_trial_remaining_days(cls, token):
-        user = token.split("%3A%3A")[0]
         url = f"https://www.cursor.com/api/auth/stripe"
 
         headers = {"Content-Type": "application/json", "Cookie": f"WorkosCursorSessionToken={token}"}
@@ -37,7 +36,6 @@ class Cursor:
         remaining_days = response.json().get("daysRemainingOnTrial", -1)
         print(f"[Info] Channel Remaining Trial Days: {remaining_days}")
         return remaining_days
-
 
 if __name__ == "__main__":
 
@@ -61,7 +59,10 @@ if __name__ == "__main__":
         key = oneapi.get_channel(id).json()["data"]["key"]
         remaining_balance = Cursor.get_remaining_balance(key)
         remaining_days = Cursor.get_trial_remaining_days(key)
-        print(f"[OneAPI] Channel {id} Info: Quota = {remaining_balance}. Trial Remaining Days = {remaining_days}")
-        if remaining_balance < 10:  # or remaining_days <= 0:
-            quota = oneapi.delete_channel(id)
+        print(f"[OneAPI] Channel {id} Info: Balance = {remaining_balance}. Trial Remaining Days = {remaining_days}")
+        if None in [remaining_balance, remaining_days]:
+            print(f"[OneAPI] Invalid resposne")
+            continue
+        if remaining_balance < 10:# or remaining_days <= 0:
+            response = oneapi.delete_channel(id)
             print(f"[OneAPI] Channel {id} Is Deleted.")
